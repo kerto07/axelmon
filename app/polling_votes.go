@@ -3,9 +3,10 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/axelarnetwork/axelar-core/x/nexus/exported"
 	"strings"
 	"time"
+
+	"github.com/axelarnetwork/axelar-core/x/nexus/exported"
 
 	"bharvest.io/axelmon/client/api"
 	"bharvest.io/axelmon/client/grpc"
@@ -39,6 +40,9 @@ func (c *Config) checkVMVotes(ctx context.Context) error {
 }
 
 func (c *Config) checkPollingVotes(ctx context.Context, pollingType api.PollingType, chains []exported.ChainName) error {
+	if c.PollingVote.LastProcessedVotes == nil {
+		c.PollingVote.LastProcessedVotes = make(map[string]map[string]byte)
+	}
 
 	result := make(map[string]server.VotesInfo)
 	for _, chain := range chains {
@@ -60,13 +64,30 @@ func (c *Config) checkPollingVotes(ctx context.Context, pollingType api.PollingT
 		}
 
 		votesInfo.Missed = fmt.Sprintf("%d / %d", resp.MissCnt, int(resp.TotalVotes))
-		metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "missed"}).Add(float64(resp.MissCnt))
-		// check if the total number of votes is higher than the number of votes checked
-		if resp.TotalVotes < float64(c.PollingVote.CheckN) {
-			metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "success"}).Add(float64(int(resp.TotalVotes) - resp.MissCnt))
-		} else {
-			metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "success"}).Add(resp.TotalVotes - float64(resp.MissCnt))
+
+		if c.PollingVote.LastProcessedVotes[chain.String()] == nil {
+			c.PollingVote.LastProcessedVotes[chain.String()] = make(map[string]byte)
 		}
+
+		// get only the new votes
+		var newVotesMissed int
+		var newVotesSuccess int
+
+		for _, voteInfo := range resp.VoteInfos {
+			if _, exists := c.PollingVote.LastProcessedVotes[chain.String()][voteInfo.PollID]; !exists {
+				if voteInfo.IsSkipped {
+					continue
+				}
+				if voteInfo.IsLate || voteInfo.Vote != 1 {
+					newVotesMissed++
+				} else {
+					newVotesSuccess++
+				}
+				c.PollingVote.LastProcessedVotes[chain.String()][voteInfo.PollID] = voteInfo.Vote
+			}
+		}
+		metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "missed"}).Add(float64(newVotesMissed))
+		metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "success"}).Add(float64(newVotesSuccess))
 
 		if (float64(resp.MissCnt)/resp.TotalVotes)*100 > float64(c.PollingVote.MissPercentage) {
 			votesInfo.Status = false

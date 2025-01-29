@@ -1,15 +1,16 @@
 package api
 
 import (
-	"bharvest.io/axelmon/log"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/axelarnetwork/axelar-core/x/nexus/exported"
 	"io"
 	"net/http"
 	"time"
+
+	"bharvest.io/axelmon/log"
+	"github.com/axelarnetwork/axelar-core/x/nexus/exported"
 )
 
 type PollingType string
@@ -150,6 +151,7 @@ func (c *Client) GetPollingVotes(chain string, size int, proxyAcc string, pollin
 
 		if time.Unix(int64(d["created_at"].(map[string]any)["ms"].(float64)/1000), 0).Before(now.Add(-1 * checkPeriod)) {
 			// it's too old record. skip it.
+			result.VoteInfos[i].IsSkipped = true
 			log.Debug("skipping... it's too old")
 			continue
 		}

@@ -38,6 +38,7 @@ type (
 		// 1 => yes
 		// 2 => no
 		Vote byte
+		IsSkipped bool
 	}
 )
 

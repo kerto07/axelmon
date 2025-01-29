@@ -1,10 +1,11 @@
 package app
 
 import (
-	"bharvest.io/axelmon/wallet"
 	"context"
 	"sync"
 	"time"
+
+	"bharvest.io/axelmon/wallet"
 )
 
 type Duration time.Duration
@@ -59,6 +60,7 @@ type Config struct {
 		CheckN          int `toml:"check_n"`
 		MissPercentage  int `toml:"miss_percentage"`
 		CheckPeriodDays int `toml:"check_period_days"`
+		LastProcessedVotes map[string]map[string]byte // Nested map for chain and pollId
 	} `toml:"external_chain_vote"`
 
 	Ctx       context.Context
