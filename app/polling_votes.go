@@ -86,8 +86,33 @@ func (c *Config) checkPollingVotes(ctx context.Context, pollingType api.PollingT
 				c.PollingVote.LastProcessedVotes[chain.String()][voteInfo.PollID] = voteInfo.Vote
 			}
 		}
-		metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "missed"}).Add(float64(newVotesMissed))
-		metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "success"}).Add(float64(newVotesSuccess))
+
+		// remove polls that are no more in the response of the api
+		var keysToDelete []string
+		for key := range c.PollingVote.LastProcessedVotes[chain.String()] {
+			var found bool
+			for _, voteInfo := range resp.VoteInfos {
+				if voteInfo.PollID == key {
+					found = true
+					break
+				}
+			}
+			if !found {
+				keysToDelete = append(keysToDelete, key)
+			}
+		}
+		for _, key := range keysToDelete {
+			delete(c.PollingVote.LastProcessedVotes[chain.String()], key)
+		}
+		
+		// use the metrics based on the pollingType
+		if pollingType == api.EVM_POLLING_TYPE {
+			metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "missed"}).Add(float64(newVotesMissed))
+			metrics.EVMVotesCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "success"}).Add(float64(newVotesSuccess))
+		} else {
+			metrics.AmplifierPollsCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "missed"}).Add(float64(newVotesMissed))
+			metrics.AmplifierPollsCounter.With(prometheus.Labels{"network_name": chain.String(), "status": "success"}).Add(float64(newVotesSuccess))
+		}
 
 		if (float64(resp.MissCnt)/resp.TotalVotes)*100 > float64(c.PollingVote.MissPercentage) {
 			votesInfo.Status = false

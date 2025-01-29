@@ -14,6 +14,14 @@ var (
 		[]string{"network_name", "status"},
 	)
 
+	AmplifierPollsCounter = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "amplifier_polls_total",
+			Help: "Number of Amplifier polls",
+		},
+		[]string{"network_name", "status"},
+	)
+
 	MaintainersGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "maintainers_status_list",
