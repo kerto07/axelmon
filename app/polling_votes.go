@@ -58,7 +58,7 @@ func (c *Config) checkPollingVotes(ctx context.Context, pollingType api.PollingT
 			c.PollingVote.CheckPeriodDays = 10
 		}
 		resp, err := api.C.GetPollingVotes(chain.String(), c.PollingVote.CheckN, c.Wallet.Proxy.PrintAcc(), pollingType,
-			time.Duration(c.PollingVote.CheckPeriodDays)*time.Hour*24)
+			time.Duration(c.PollingVote.CheckPeriodDays)*time.Hour*24, time.Duration(c.PollingVote.SkipVoteNewSeconds)*time.Second)
 		if err != nil {
 			return err
 		}

@@ -60,6 +60,7 @@ type Config struct {
 		CheckN          int `toml:"check_n"`
 		MissPercentage  int `toml:"miss_percentage"`
 		CheckPeriodDays int `toml:"check_period_days"`
+		SkipVoteNewSeconds int `toml:"skip_vote_new_seconds"`
 		LastProcessedVotes map[string]map[string]byte // Nested map for chain and pollId
 	} `toml:"external_chain_vote"`
 

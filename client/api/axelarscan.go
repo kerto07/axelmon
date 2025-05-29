@@ -74,7 +74,7 @@ func (c *Client) GetVerifierSupportedChains(proxyAcc string) ([]exported.ChainNa
 	return nil, errors.New("didn't found any verifier matched with your Acc -> " + proxyAcc)
 }
 
-func (c *Client) GetPollingVotes(chain string, size int, proxyAcc string, pollingType PollingType, checkPeriod time.Duration) (*VotesReturn, error) {
+func (c *Client) GetPollingVotes(chain string, size int, proxyAcc string, pollingType PollingType, checkPeriod time.Duration, skipVoteNewSeconds time.Duration) (*VotesReturn, error) {
 	// VotesResponse MissCnt is byte type.
 	// Therefore, the maximum number of evm votes should be
 	// less than 256
@@ -153,6 +153,14 @@ func (c *Client) GetPollingVotes(chain string, size int, proxyAcc string, pollin
 			// it's too old record. skip it.
 			result.VoteInfos[i].IsSkipped = true
 			log.Debug("skipping... it's too old")
+			continue
+		}
+
+		createdAtMs := d["created_at"].(map[string]any)["ms"].(float64)
+		createdAtTime := time.Unix(int64(createdAtMs/1000), 0)
+		if now.Sub(createdAtTime) < skipVoteNewSeconds {
+			result.VoteInfos[i].IsSkipped = true
+			log.Debug("skipping... it's too new")
 			continue
 		}
 

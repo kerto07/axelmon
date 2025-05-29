@@ -77,5 +77,8 @@ check_n = 10
 # `check_period_days` will truncate old records.
 check_period_days = 10
 
+# if votes contain too recent vote records, it will be skipped because the indexing in axelarscan takes time and might result with incorrect voting status.
+skip_vote_new_seconds = 90
+
 # If a `missedVotes / totalVotes` is over `miss_percentage` parameter, it'll alert.
 miss_percentage = 20
